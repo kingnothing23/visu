@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Argent public en France</title>
+<meta name="description" content="D'où vient et où va l'argent public en France : État élargi (avec Sécurité sociale, Bpifrance, CDC) et collectivités, niches fiscales comprises.">
+<style>
+:root{
+  --bg:#f7f6f2; --panel:#ffffff; --ink:#1d1f24; --muted:#6b6f78; --line:#e3e1da;
+  --accent:#1f4fd1;
+  --rec:#2f8f6b; --dep:#c4622d; --etat:#1f4fd1; --coll:#7a3fb8; --deficit:#c0303a; --transfer:#7a3fb8;
+  --niche:#d49a00; --fin:#5c7a8f; --secu:#0e8a7e;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121317; --panel:#1b1d23; --ink:#ecebe6; --muted:#9a9ea8; --line:#2c2f37;
+    --accent:#7aa2ff; --rec:#4cc196; --dep:#ea8a55; --etat:#7aa2ff; --coll:#b98bf0; --deficit:#ff6b73; --transfer:#b98bf0;
+    --niche:#f2c14e; --fin:#8fb0c6; --secu:#4fd1c0;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121317; --panel:#1b1d23; --ink:#ecebe6; --muted:#9a9ea8; --line:#2c2f37;
+  --accent:#7aa2ff; --rec:#4cc196; --dep:#ea8a55; --etat:#7aa2ff; --coll:#b98bf0; --deficit:#ff6b73; --transfer:#b98bf0;
+  --niche:#f2c14e; --fin:#8fb0c6; --secu:#4fd1c0;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 64px}
+header h1{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:0 0 6px;letter-spacing:-.01em}
+header p{margin:0;color:var(--muted);max-width:800px}
+.controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin:22px 0 18px}
+.controls>div{max-width:100%}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--panel);padding:3px}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;padding:6px 14px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.ctl-label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:6px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .l{font-size:12.5px;color:var(--muted)}
+.kpi .v{font-size:26px;font-weight:650;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12.5px;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 10px;box-shadow:var(--shadow);margin-bottom:28px}
+.card h2{font-size:19px;margin:0 0 2px}
+.card .sub{color:var(--muted);font-size:13.5px;margin:0 0 10px}
+.scroller{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#sankey{min-width:920px}
+svg text{fill:var(--ink);font-size:12.5px}
+svg .lab-v{fill:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+svg .colhead{fill:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.link{fill:none;stroke-opacity:.32;transition:stroke-opacity .15s}
+.link.dim{stroke-opacity:.07}
+.link.hi{stroke-opacity:.62}
+.link.transfer{stroke-opacity:.75}
+.link.transfer.dim{stroke-opacity:.2}
+.link.hatch{stroke-opacity:.85}
+.link.hatch.dim{stroke-opacity:.18}
+.node rect{rx:2}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:8px 10px;border-radius:8px;font-size:13px;line-height:1.35;max-width:320px;opacity:0;transition:opacity .1s;z-index:10}
+#tip b{font-weight:650}
+.legend{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend i.h-niche{background:repeating-linear-gradient(45deg,var(--niche) 0 2px,transparent 2px 4px);outline:1px solid var(--niche)}
+.legend i.h-fin{background:repeating-linear-gradient(45deg,var(--fin) 0 2px,transparent 2px 4px);outline:1px solid var(--fin)}
+.toggles{display:flex;flex-wrap:wrap;gap:8px 18px;margin:4px 0 8px;font-size:13.5px}
+.toggles label{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.toggles input{accent-color:var(--ink);width:16px;height:16px}
+/* aides */
+.aides{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:8px 0 12px}
+.aide{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.aide .v{font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+.aide .l{font-size:13px}
+.aide .s{font-size:12px;color:var(--muted)}
+.aide.in{border-left:4px solid var(--dep)} .aide.ni{border-left:4px solid var(--niche)} .aide.fi{border-left:4px solid var(--fin)}
+/* fonctions */
+.fn{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:6px 14px;align-items:center;margin:4px 0 12px}
+.fn .name{font-size:14px;cursor:pointer;user-select:none}
+.fn .name .car{display:inline-block;width:14px;color:var(--muted);transition:transform .15s}
+.fn .name.open .car{transform:rotate(90deg)}
+.fn .name.sub{font-size:13px;color:var(--muted);cursor:default;padding-left:18px}
+.bar{display:flex;align-items:center;gap:8px;min-width:0}
+.bar .track{display:flex;height:18px;border-radius:4px;overflow:hidden;flex:0 0 auto}
+.bar .track.small{height:11px}
+.bar .seg-e{background:var(--etat)} .bar .seg-c{background:var(--coll)}
+.bar .num{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.notes{font-size:13.5px;color:var(--muted)}
+.notes h3{color:var(--ink);font-size:15px;margin:18px 0 6px}
+.notes ul{padding-left:18px;margin:6px 0}
+.notes a{color:var(--accent)}
+#checks,#audit{border-collapse:collapse;font-size:13px;min-width:640px;width:100%;margin:6px 0 10px}
+#checks th,#checks td,#audit th,#audit td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+#checks th:first-child,#checks td:first-child,#checks td.src,#audit td:first-child,#audit th:first-child{text-align:left}
+#checks th,#audit th{color:var(--ink);font-weight:600}
+#checks td.ok,#audit td.ok{color:var(--rec)} #checks td.warn,#audit td.warn{color:var(--niche)}
+#checks tr[data-note]{cursor:help}
+.bar .seg-p{background:repeating-linear-gradient(45deg,var(--niche) 0 3px,transparent 3px 6px);box-shadow:inset 0 0 0 1px var(--niche)}
+.bar .seg-t{background:var(--transfer)} .bar .seg-r{background:var(--muted)}
+
+/* onglets */
+.tabs{display:flex;gap:4px;margin:18px 0 4px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:transparent;font:inherit;font-size:15px;font-weight:600;color:var(--muted);padding:10px 16px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs a{font-size:15px;font-weight:600;color:var(--muted);padding:10px 16px;border-bottom:3px solid transparent;margin-bottom:-1px;text-decoration:none}
+.tabs a:hover{color:var(--ink)}
+.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+/* ajustement */
+.aj-summary{display:grid;grid-template-columns:3fr 1fr;gap:12px;margin:8px 0 12px;position:sticky;top:0;z-index:5;background:var(--panel);padding:8px 0}
+.aj-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.aj-actions{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.aj-actions button{font:inherit;font-size:13.5px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.aj-actions button:hover{border-color:var(--accent)}
+.kpi .v.good{color:var(--rec)} .kpi .v.bad{color:var(--deficit)}
+.aj-head,.aj-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(140px,220px) 52px 100px 96px;gap:10px;align-items:center}
+.aj-head{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 0;border-bottom:1px solid var(--line)}
+.aj-row{padding:9px 0;border-bottom:1px solid var(--line)}
+.aj-main .aj-name{font-weight:600}
+.aj-sub{padding-left:26px;font-size:13.5px;background:color-mix(in srgb, var(--bg) 60%, transparent)}
+.aj-meta{font-weight:400;font-size:12px;color:var(--muted)}
+.aj-tog{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;width:22px;padding:0}
+.aj-range{width:100%;accent-color:var(--accent)}
+.aj-pct{font-variant-numeric:tabular-nums;font-size:13px;text-align:right;color:var(--muted)}
+.aj-num{width:100%;font:inherit;font-size:13.5px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);text-align:right}
+.aj-numtxt{font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
+.aj-delta{font-variant-numeric:tabular-nums;font-size:13px;text-align:right;color:var(--muted)}
+.aj-delta.up{color:var(--deficit)} .aj-delta.down{color:var(--rec)}
+.aj-warn{color:var(--niche);cursor:help}
+.aj-bar{position:relative;height:5px;margin-top:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.aj-bar span{position:absolute;top:0;bottom:0}
+.aj-bar span.up{background:var(--deficit)} .aj-bar span.down{background:var(--rec)}
+@media (max-width:760px){
+  .aj-summary{grid-template-columns:1fr;position:static}
+  .aj-kpis{grid-template-columns:1fr 1fr}
+  .aj-head{display:none}
+  .aj-row{grid-template-columns:1fr 52px 84px;grid-template-areas:"n n n" "r p d" "x x m"}
+  .aj-row .aj-name{grid-area:n} .aj-row .aj-range{grid-area:r} .aj-row .aj-pct{grid-area:p} .aj-row .aj-delta{grid-area:d}
+  .aj-row .aj-num,.aj-row .aj-numtxt{grid-area:m}
+  .aj-sub{padding-left:12px}
+}
+footer{font-size:12.5px;color:var(--muted);margin-top:24px}
+@media (max-width:760px){
+  .kpi .v{font-size:21px}
+  .fn{grid-template-columns:120px 1fr}
+  .seg button{padding:6px 10px}
+  .fn .bar .track{max-width:calc(100vw - 260px)}
+  .bar .num{font-size:11.5px;white-space:normal}
+  .bar{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>D'où vient et où va l'argent public&nbsp;?</h1>
+    <p>L'<b style="color:var(--etat)">État élargi</b> (État, agences publiques, Sécurité sociale — Assurance maladie, CNAV, CNRACL, Agirc-Arrco, Unédic, hôpitaux… — ainsi que Bpifrance et la Caisse des Dépôts) et les <b style="color:var(--coll)">collectivités locales</b> (communes, intercommunalités, départements, régions et leurs organismes).</p>
+  </header>
+
+  <nav class="tabs">
+    <a href="index.html" aria-current="page">Visualisation</a>
+    <a href="ajustement.html">Ajustement</a>
+  </nav>
+
+  <div id="tab-visu">
+  <div class="controls">
+    <div><span class="ctl-label">Année</span><span class="seg" id="c-year"></span></div>
+    <div><span class="ctl-label">Unité</span><span class="seg" id="c-unit">
+      <button data-v="md" aria-pressed="true">Md€</button><button data-v="hab" aria-pressed="false">€ / habitant</button></span></div>
+    <div><span class="ctl-label">Périmètre</span><span class="seg" id="c-scope">
+      <button data-v="both" aria-pressed="true">Tout</button><button data-v="etat" aria-pressed="false">État élargi</button><button data-v="coll" aria-pressed="false">Collectivités</button></span></div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section class="card">
+    <h2>Les flux</h2>
+    <p class="sub">Largeur des bandes proportionnelle aux montants. Survolez une bande ou un bloc pour le détail. Les bandes hachurées ne sont pas des dépenses au sens comptable : ce sont des recettes auxquelles on renonce (niches) ou des prêts et garanties (Bpifrance, CDC).</p>
+    <div class="controls" style="margin:6px 0 4px"><div><span class="ctl-label">Détail de l'État</span><span class="seg" id="c-view">
+      <button data-v="nature" aria-pressed="true">Par nature (comptes publics)</button><button data-v="ministere" aria-pressed="false">Par ministère (budget de l'État)</button></span></div></div>
+    <div class="controls" id="blocs-ctl" style="margin:4px 0"><div><span class="ctl-label">Blocs</span><span class="seg" id="c-blocs">
+      <button data-v="3" aria-pressed="true">État · Sécu · Collectivités</button><button data-v="2" aria-pressed="false">État élargi · Collectivités</button><button data-v="1" aria-pressed="false">Tout fusionné</button></span></div></div>
+    <p class="sub" id="view-note" style="display:none"></p>
+    <div class="toggles">
+      <label id="l-isole" style="display:none"><input type="checkbox" id="t-isole" checked> Sortir les cotisations retraite des ministères (montrer ce qui sert vraiment à leurs missions)</label>
+      <label id="l-cas" style="display:none"><input type="checkbox" id="t-cas" checked> Afficher le circuit des retraites des fonctionnaires (CAS Pensions)</label>
+      <label id="l-presta"><input type="checkbox" id="t-presta" checked> Détailler les prestations sociales</label>
+      <label id="l-niches"><input type="checkbox" id="t-niches" checked> Compter les niches fiscales et allègements de cotisations comme des dépenses</label>
+      <label id="l-fin"><input type="checkbox" id="t-fin" checked> Afficher Bpifrance &amp; Caisse des Dépôts</label>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--rec)"></i>Recettes</span>
+      <span><i style="background:var(--deficit)"></i>Emprunt (déficit)</span>
+      <span><i style="background:var(--etat)"></i>État (et agences)</span>
+      <span><i style="background:var(--secu)"></i>Sécurité sociale</span>
+      <span><i style="background:var(--coll)"></i>Collectivités</span>
+      <span><i style="background:var(--dep)"></i>Dépenses</span>
+      <span><i class="h-niche"></i>Niches (manque à gagner)</span>
+      <span><i class="h-fin"></i>Prêts &amp; garanties</span>
+    </div>
+    <p class="sub" id="nat-missing" style="display:none;padding:18px;border:1px dashed var(--line);border-radius:10px"></p>
+    <div class="scroller"><svg id="sankey" role="img" aria-label="Diagramme de flux des recettes et dépenses publiques"></svg></div>
+  </section>
+
+  <section class="card" id="aides-card">
+    <h2>Soutiens publics aux entreprises : dépenses, moindres recettes et financements <span id="aides-year" style="color:var(--muted);font-weight:400"></span></h2>
+    <p class="sub">Le chiffre de « plus de 200&nbsp;Md€ » additionne des choses de nature différente&nbsp;: des dépenses réelles (subventions), des recettes auxquelles on renonce (niches, allègements) et des prêts ou garanties (Bpifrance). Ce n'est donc pas 200&nbsp;Md€ de dépenses publiques. Voici les morceaux, et où ils apparaissent dans le diagramme.</p>
+    <div class="aides" id="aides"></div>
+  </section>
+
+  <section class="card">
+    <h2>Le budget de l'État par ministère <span id="bud-year" style="color:var(--muted);font-weight:400"></span></h2>
+    <p class="sub"><span id="bud-intro">Crédits de paiement réellement dépensés en 2025 sur le budget général, regroupés par ministère (gouvernement en place l'essentiel de l'année).</span> Quand une mission relève de plusieurs ministères, elle est découpée au niveau de ses programmes. Cliquez sur un ministère pour voir le détail. Les montants incluent les salaires des agents <b>et leurs cotisations retraite</b> versées au CAS Pensions&nbsp;; les pensions elles-mêmes sont payées par ce compte spécial (voir plus bas). Ce budget ne couvre ni la Sécurité sociale, ni les collectivités, ni la plupart des agences.</p>
+    <div class="legend">
+      <span><i style="background:var(--etat)"></i>Ministères</span>
+      <span><i class="h-niche"></i>dont cotisations retraite des agents (CAS Pensions)</span>
+      <span><i style="background:var(--transfer)"></i>Versements hors ministères (prélèvements sur recettes)</span>
+      <span><i style="background:var(--muted)"></i>Remboursements et dégrèvements (restitutions d'impôts)</span>
+    </div>
+    <div id="budget"></div>
+    <p class="sub" id="bud-foot" style="margin-top:8px"></p>
+    <p class="sub" id="bud-note" style="margin-top:4px;padding:10px 12px;border-left:3px solid var(--niche);background:color-mix(in srgb, var(--niche) 8%, transparent);border-radius:6px"></p>
+    <h3 style="font-size:16px;margin:18px 0 4px">Les retraites des fonctionnaires de l'État</h3>
+    <div class="aides" id="cas"></div>
+    <p class="sub" id="cas-foot"></p>
+  </section>
+
+  <section class="card">
+    <h2>À quoi sert la dépense&nbsp;? <span id="fn-year" style="color:var(--muted);font-weight:400"></span></h2>
+    <p class="sub">Dépenses par grande fonction (nomenclature COFOG), hors niches et hors Bpifrance/CDC. Cliquez sur une fonction pour voir le détail. Les transferts entre administrations sont retirés pour ne pas compter deux fois le même euro.</p>
+    <div class="legend"><span><i style="background:var(--etat)"></i>État élargi</span><span><i style="background:var(--coll)"></i>Collectivités</span></div>
+    <div id="fn"></div>
+  </section>
+
+  <section class="notes">
+    <h3>Méthode</h3>
+    <ul>
+      <li><b>Comptes publics</b>&nbsp;: Eurostat, comptes nationaux des administrations publiques en SEC&nbsp;2010 (<code>gov_10a_main</code>, <code>gov_10a_exp</code>), qui reprennent les comptes de l'Insee. État élargi = administration centrale (S1311, État + agences) + Sécurité sociale (S1314), consolidés&nbsp;: les versements entre eux (par ex. compensations d'exonérations de l'État à la Sécu) disparaissent. Collectivités = S1313. Le total « Tout » correspond au compte de l'ensemble des administrations publiques publié par l'Insee.</li>
+      <li>Ce sont des comptes en <i>comptabilité nationale</i>, pas le budget voté&nbsp;: les montants diffèrent de la loi de finances et de la loi de financement de la Sécurité sociale.</li>
+      <li>« Emprunt (déficit) » = besoin de financement de l'année (dépenses − recettes), couvert par de la nouvelle dette.</li>
+      <li><b>Niches comptées comme dépenses</b>&nbsp;: on ajoute à gauche une recette « théorique » (l'impôt ou la cotisation qui aurait été perçu) et à droite une aide du même montant. Le déficit ne change pas. Dépenses fiscales&nbsp;: annexe <i>Voies et moyens, tome II</i> du PLF 2026 (89,4&nbsp;Md€ en 2024, 91,8&nbsp;Md€ estimés en 2025). Part entreprises (43,5&nbsp;Md€) et allègements de cotisations (77&nbsp;Md€)&nbsp;: rapport du Sénat n°808 (2025), chiffres 2023 reconduits faute de mise à jour. Les crédits d'impôt remboursables (crédit d'impôt recherche ≈&nbsp;8&nbsp;Md€, emploi à domicile et garde d'enfants ≈&nbsp;9&nbsp;Md€) sont déjà enregistrés en dépenses par l'Insee&nbsp;: ils sont retirés des bandes « niches » pour éviter un double compte. Ces chiffrages restent des ordres de grandeur.</li>
+      <li><b>Bpifrance et Caisse des Dépôts</b>&nbsp;: ce ne sont pas des administrations publiques au sens des comptes nationaux (ce sont des institutions financières publiques). Leurs flux sont surtout des prêts (remboursés), des garanties et de l'assurance export (engagements, qui ne coûtent qu'en cas de défaut) et des prises de participation. Ils sont montés en parallèle, sans se mélanger aux dépenses définitives. Leurs ressources sont l'épargne réglementée centralisée (Livret A, LDDS, LEP), les emprunts de marché et les remboursements. Bpifrance&nbsp;: bilans d'activité 2024 et 2025. CDC&nbsp;: prêts du fonds d'épargne signés (catégories publiées différentes selon l'année).</li>
+      <li>La vue par fonction n'existe qu'avec environ un an de décalage (dernière année disponible affichée).</li>
+      <li>€/habitant&nbsp;: population France entière (Insee), arrondie.</li>
+    </ul>
+    <h3>Vérifications <span id="chk-year"></span></h3>
+    <p>Chaque chiffre clé du diagramme est comparé à une source indépendante. Les écarts au-delà de 1&nbsp;% viennent de différences de définition, expliquées en survol.</p>
+    <div class="scroller"><table id="checks"></table></div>
+    <h3>Chaque euro classé une seule fois <span id="audit-year"></span></h3>
+    <p>Reconstruction complète du compte à partir des données brutes : chaque poste des comptes de l'État, de la Sécurité sociale et des collectivités est rangé dans une seule case (recette finale, dépense finale ou flux interne entre administrations). Les niches et Bpifrance/CDC sont ajoutées à part, hors comptes publics. Les écarts de 0,1 viennent des arrondis à la dizaine de millions.</p>
+    <div class="scroller"><table id="audit"></table></div>
+    <h3>Sources</h3>
+    <ul>
+      <li><a href="https://ec.europa.eu/eurostat/databrowser/view/gov_10a_main/default/table" target="_blank" rel="noopener">Eurostat — Government revenue, expenditure and main aggregates (gov_10a_main)</a></li>
+      <li><a href="https://ec.europa.eu/eurostat/databrowser/view/gov_10a_exp/default/table" target="_blank" rel="noopener">Eurostat — General government expenditure by function (gov_10a_exp)</a></li>
+      <li><a href="https://www.insee.fr/fr/statistiques/8997691" target="_blank" rel="noopener">Insee Première n°2106 — Le compte des administrations publiques en 2025</a></li>
+      <li><a href="https://www.insee.fr/fr/metadonnees/source/fichier/fichemethodo8_B2020_credit_impots.pdf" target="_blank" rel="noopener">Insee — L'enregistrement des crédits d'impôt en base 2020</a></li>
+      <li><a href="https://www.assemblee-nationale.fr/dyn/dyn/contenu/visualisation/1087933/file/Voies_et_moyens_Tome_2_2026.pdf" target="_blank" rel="noopener">PLF 2026 — Évaluation des voies et moyens, tome II (dépenses fiscales)</a></li>
+      <li><a href="https://www.economie.gouv.fr/files/files/directions_services/dgfip/media-document/sme_2025-12_definitive.pdf" target="_blank" rel="noopener">DGFiP — Situation mensuelle de l'État, décembre 2025 définitive (missions, TVA nette, prélèvements sur recettes)</a></li>
+      <li>Direction du Budget — « Le budget de l'État voté pour 2026 en quelques chiffres » (loi n° 2026-103 du 19 février 2026)</li>
+      <li><a href="https://solidarites.gouv.fr/sites/solidarite/files/2026-10/DP-BUDGET-2027.pdf" target="_blank" rel="noopener">Dossier de presse du projet de budget 2027 (prévisions 2026 : déficit, dépenses, dette)</a></li>
+      <li><a href="https://retraitesdeletat.gouv.fr/statistiques/cas.html" target="_blank" rel="noopener">Retraites de l'État — Le CAS Pensions (recettes et dépenses)</a></li>
+      <li><a href="https://questions.assemblee-nationale.fr/q17/17-898QG.htm" target="_blank" rel="noopener">Assemblée nationale — Question au Gouvernement n° 898 (pensions dans les budgets ministériels, cotisation d'équilibre)</a></li>
+      <li><a href="https://www.assemblee-nationale.fr/dyn/opendata/RAPPANR5L17B2847-tI.html" target="_blank" rel="noopener">Assemblée nationale — Rapport sur le projet de loi de résultats 2025 (Enseignement scolaire hors pensions, contributions au CAS Pensions)</a></li>
+      <li><a href="https://www.impots.gouv.fr/dgfip-statistiques-tva-2025-provisoire-une-hausse-comparable-celle-de-2024-mais-toujours-inferieure" target="_blank" rel="noopener">DGFiP — Statistiques TVA 2025 provisoires</a></li>
+      <li><a href="https://www.vie-publique.fr/files/rapport/pdf/302978.pdf" target="_blank" rel="noopener">Cour des comptes — Le budget de l'État en 2025, résultats et gestion</a></li>
+      <li><a href="https://www.senat.fr/rap/r24-808-1/r24-808-120.html" target="_blank" rel="noopener">Sénat — Rapport n°808 sur les aides publiques aux entreprises</a></li>
+      <li><a href="https://presse.bpifrance.fr/bilan-dactivite-2025-activite-record-72-milliards-deuros-injectes-dans-leconomie-creation-de-valeur-13-milliard-deuros/?lang=fra" target="_blank" rel="noopener">Bpifrance — Bilan d'activité 2025</a> · <a href="https://presse.bpifrance.fr/bilan-dactivite-2024-60-milliards-deuros-injectes-dans-leconomie-francaise-et-896-millions-deuros-de-resultat-net-estime" target="_blank" rel="noopener">2024</a></li>
+      <li><a href="https://www.caissedesdepots.fr/eclairage/actualites/le-fonds-depargne-confirme-son-role-de-pilier-de-laction-publique-en-2025" target="_blank" rel="noopener">Caisse des Dépôts — Fonds d'épargne 2025</a> · <a href="https://www.banquedesterritoires.fr/cdc-2024" target="_blank" rel="noopener">2024</a> · <a href="https://econostrum.info/fonds-depargne-caisse-depots-record-prets/" target="_blank" rel="noopener">total 2025 (41,7 Md€)</a></li>
+    </ul>
+  </section>
+  <footer id="foot"></footer>
+  </div>
+
+</div>
+<div id="tip"></div>
+
+<script src="lib/d3.min.js"></script>
+<script src="lib/d3-sankey.min.js"></script>
+<script src="data/data.js"></script>
+<script>
+(function(){
+const F = window.FINANCES;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+const NODES = {
+  // recettes
+  ir:{l:"Impôt sur le revenu & CSG", t:"rec", d:"Impôt sur le revenu, CSG et CRDS : impôts sur les revenus des ménages."},
+  cotis:{l:"Cotisations sociales", t:"rec", d:"Cotisations des employeurs et des salariés (retraite, maladie, chômage…), y compris retraites des fonctionnaires."},
+  tva:{l:"TVA", t:"rec", d:"Taxe sur la valeur ajoutée, partagée entre l'État (≈ 47 %), la Sécurité sociale (≈ 27 %) et les collectivités (≈ 25 %). Montant en comptabilité nationale ; la DGFiP publie 212 Md€ de TVA « économique » pour 2025 (écart de définition ≈ 1,5 %, voir Vérifications)."},
+  prod:{l:"Autres impôts sur la production", t:"rec", d:"Accises sur l'énergie (TICPE), taxes foncières, droits de mutation, taxes sur les salaires, etc."},
+  is:{l:"Impôt sur les sociétés", t:"rec", d:"Impôts sur les bénéfices des entreprises."},
+  ventes:{l:"Ventes & services", t:"rec", d:"Production marchande : redevances, cantines, prestations facturées, etc."},
+  capital:{l:"Successions & donations", t:"rec", d:"Impôts en capital, essentiellement droits de succession et de donation."},
+  patrimoine:{l:"Revenus du patrimoine", t:"rec", d:"Dividendes des participations publiques, intérêts reçus, loyers."},
+  autimp:{l:"Autres impôts courants", t:"rec", d:"Impôt sur la fortune immobilière, taxe d'habitation sur les résidences secondaires, etc."},
+  transf_in:{l:"Transferts reçus", t:"rec", d:"Fonds européens et autres transferts reçus de l'extérieur du périmètre."},
+  dotations:{l:"Dotations de l'État", t:"transfer", d:"Dotations et subventions nettes reçues de l'État élargi."},
+  niche_fisc:{l:"Impôts non perçus (niches)", t:"niche", d:"Recettes fiscales auxquelles l'État renonce via les réductions, exonérations et taux réduits. Comptées ici comme si elles étaient perçues puis reversées."},
+  niche_soc:{l:"Cotisations non perçues", t:"niche", d:"Allègements de cotisations patronales (réduction générale, exonérations ciblées)."},
+  deficit:{l:"Emprunt (déficit)", t:"deficit", d:"Dépenses non couvertes par les recettes de l'année, financées par de la dette."},
+  fin_in:{l:"Épargne réglementée & emprunts", t:"fin", d:"Ressources de Bpifrance et de la CDC : Livret A / LDDS / LEP centralisés, emprunts de marché, remboursements de prêts."},
+  // centre
+  etat:{l:"État élargi (État + agences + Sécu)", t:"etat"},
+  c_etat:{l:"État et agences", t:"etat"},
+  c_secu:{l:"Sécurité sociale", t:"secu"},
+  apu:{l:"Administrations publiques", t:"etat"},
+  vers_c_secu:{l:"Versé à la Sécurité sociale", t:"transfer", d:"Transferts nets vers la Sécurité sociale (compensations d'exonérations, subventions d'équilibre…)."},
+  vers_coll:{l:"Versé aux collectivités", t:"transfer", d:"Dotations et subventions nettes versées aux collectivités locales."},
+  de_c_etat:{l:"Reçu de l'État", t:"transfer", d:"Transferts nets reçus de l'État et de ses agences."},
+  de_c_secu:{l:"Reçu de la Sécurité sociale", t:"transfer", d:"Transferts nets reçus de la Sécurité sociale (CNSA : APA, PCH…)."},
+  p_retraites:{l:"Retraites", t:"dep", d:"Pensions de vieillesse et de réversion : régimes de base et complémentaires (Sécu), pensions des fonctionnaires de l'État."},
+  p_sante:{l:"Soins remboursés", t:"dep", d:"Remboursements de soins de ville et de médicaments par l'Assurance maladie."},
+  p_invalidite:{l:"Maladie, invalidité, handicap", t:"dep", d:"Indemnités journalières, pensions d'invalidité, AAH, PCH."},
+  p_famille:{l:"Famille, enfance", t:"dep", d:"Allocations familiales, prestations petite enfance, aide sociale à l'enfance."},
+  p_chomage:{l:"Chômage", t:"dep", d:"Allocations chômage (Unédic) et de solidarité."},
+  p_exclusion:{l:"Pauvreté, exclusion", t:"dep", d:"RSA, prime d'activité…"},
+  p_logement:{l:"Aides au logement", t:"dep", d:"APL et autres aides personnelles au logement."},
+  p_autres:{l:"Autres prestations", t:"dep", d:"Bourses, prestations diverses."},
+  coll:{l:"Collectivités locales", t:"coll"},
+  fin:{l:"Bpifrance & CDC", t:"fin", d:"Banque publique d'investissement et fonds d'épargne de la Caisse des Dépôts."},
+  // dépenses
+  presta:{l:"Prestations sociales", t:"dep", d:"Retraites (≈ 413 Md€ en 2024 avec les pensions de réversion, de loin le premier poste), remboursements de soins, allocations chômage et familiales, RSA, APL, handicap…"},
+  remu:{l:"Salaires des agents", t:"dep", d:"Rémunérations des agents publics, cotisations employeur comprises (enseignants, soignants des hôpitaux publics, militaires, policiers, agents territoriaux…)."},
+  fonct:{l:"Achats & fonctionnement", t:"dep", d:"Consommations intermédiaires : énergie, fournitures, médicaments hospitaliers, prestations de services, entretien…"},
+  invest:{l:"Investissement", t:"dep", d:"Routes, bâtiments, écoles, hôpitaux, équipements militaires, logiciels, recherche…"},
+  autres:{l:"Autres transferts", t:"dep", d:"Associations, ménages, coopération internationale, crédit d'impôt recherche, autres transferts courants et en capital."},
+  interets:{l:"Intérêts de la dette", t:"dep", d:"Intérêts versés par toutes les administrations du périmètre, en comptabilité nationale : État et agences, Sécurité sociale (dette sociale portée par la CADES) et collectivités. La Cour des comptes publie un autre chiffre (51,6 Md€ en 2025) : la seule charge de la dette du budget de l'État, en comptabilité budgétaire."},
+  subv:{l:"Subventions aux entreprises", t:"dep", d:"Aides directes aux entreprises, compensations tarifaires (transports, énergie…), aides à l'emploi et à l'apprentissage."},
+  ue:{l:"Contribution à l'UE", t:"dep", d:"Ressource propre fondée sur le revenu national versée au budget de l'Union européenne."},
+  versements:{l:"Versements aux collectivités", t:"transfer", d:"Dotations et subventions nettes versées aux collectivités locales."},
+  niche_ent:{l:"Niches fiscales — entreprises", t:"niche", d:"Exonérations, réductions et taux réduits bénéficiant aux entreprises (hors crédit d'impôt recherche, déjà compté dans « Autres transferts »)."},
+  niche_men:{l:"Niches fiscales — ménages", t:"niche", d:"Abattement de 10 % sur les pensions, épargne salariale, dons, taux réduits de TVA (travaux, restauration), etc. (hors crédits d'impôt emploi à domicile / garde d'enfants, déjà comptés en prestations)."},
+  alleg:{l:"Allègements de cotisations", t:"niche", d:"Cotisations patronales non payées par les entreprises (réduction générale sur les bas salaires, exonérations ciblées)."},
+  bpi_credit:{l:"Prêts aux entreprises", t:"fin", d:"Crédits Bpifrance (court, moyen et long terme), remboursables."},
+  bpi_garanties:{l:"Garanties de prêts", t:"fin", d:"Prêts bancaires garantis par Bpifrance : engagement, ne coûte qu'en cas de défaut."},
+  bpi_innovation:{l:"Aides à l'innovation", t:"fin", d:"Subventions, avances remboursables et prêts d'innovation (France 2030…)."},
+  bpi_fonds_propres:{l:"Prises de participation", t:"fin", d:"Investissement en fonds propres, en direct ou via des fonds."},
+  bpi_export:{l:"Assurance & garanties export", t:"fin", d:"Assurance-crédit et garanties à l'export gérées pour le compte de l'État : engagements."},
+  cdc_logement:{l:"Prêts au logement social", t:"fin", d:"Prêts du fonds d'épargne (Livret A) aux bailleurs sociaux et logement intermédiaire."},
+  cdc_territoires:{l:"Prêts aux collectivités", t:"fin", d:"Prêts du fonds d'épargne au secteur public local (projets des collectivités)."},
+  cdc_autres:{l:"Autres prêts du fonds d'épargne", t:"fin", d:"Autres financements du fonds d'épargne (infrastructures, transition écologique hors logement et collectivités…)."},
+  bpi_autres:{l:"Autres (Bpifrance)", t:"fin", d:"Écart entre le total publié par Bpifrance et la somme des lignes détaillées (prêts de développement, accompagnement…)."},
+  excedent:{l:"Excédent", t:"rec"}
+};
+const ORDER = ["ir","cotis","tva","prod","is","ventes","capital","patrimoine","autimp","transf_in","dotations","niche_fisc","niche_soc","deficit","fin_in",
+  "de_c_etat","de_c_secu",
+  "apu","etat","c_etat","c_secu","coll","fin",
+  "presta","p_retraites","p_sante","p_invalidite","p_famille","p_chomage","p_exclusion","p_logement","p_autres","remu","fonct","invest","autres","interets","subv","ue","versements","vers_c_secu","vers_coll","niche_men","niche_ent","alleg","excedent",
+  "bpi_credit","bpi_garanties","bpi_innovation","bpi_fonds_propres","bpi_export","bpi_autres","cdc_logement","cdc_territoires","cdc_autres"];
+const colorOf = t => css({rec:"--rec",dep:"--dep",etat:"--etat",secu:"--secu",coll:"--coll",deficit:"--deficit",transfer:"--transfer",niche:"--niche",fin:"--fin"}[t]);
+
+const state = {year: Math.max(...Object.keys(F.years).map(Number)), unit:"md", scope:"both", niches:true, fin:true, view:"nature", cas:true, isole:true, blocs:"3", presta:true};
+// nœuds de la vue « par ministère »
+const BV_YEARS = Object.keys(F.budget_view||{}).map(Number);
+const yB = () => BV_YEARS.includes(state.year) ? state.year : Math.max(...BV_YEARS);
+Object.assign(NODES, {
+  b_ir:{l:"Impôt sur le revenu (net)", t:"rec"}, b_tva:{l:"TVA nette (part de l'État)", t:"rec", d:"Seulement la part de TVA gardée par l'État ; le reste va à la Sécurité sociale et aux collectivités."},
+  b_is:{l:"Impôt sur les sociétés (net)", t:"rec"}, b_ticpe:{l:"Accise sur l'énergie (part État)", t:"rec", d:"Ex-TICPE, part conservée par l'État."},
+  b_autres:{l:"Autres recettes fiscales nettes", t:"rec", d:"Droits de succession, taxe sur les salaires, prélèvements sur l'épargne, taxes diverses…"},
+  b_rnf:{l:"Recettes non fiscales", t:"rec", d:"Dividendes des entreprises publiques, amendes, redevances, intérêts…"},
+  b_fdc:{l:"Fonds de concours", t:"rec", d:"Contributions de tiers (UE, collectivités…) à des dépenses de l'État."},
+  b_deficit:{l:"Emprunt (déficit du budget)", t:"deficit", d:"Déficit du budget général, couvert par l'émission de dette."},
+  budget:{l:"Budget de l'État", t:"etat"},
+  b_psr_coll:{l:"Versé aux collectivités (DGF…)", t:"transfer", d:"Prélèvements sur recettes au profit des collectivités : dotation globale de fonctionnement, FCTVA, compensations."},
+  b_psr_ue:{l:"Versé au budget de l'UE", t:"dep", d:"Prélèvement sur recettes au profit de l'Union européenne."},
+  b_rd_loc:{l:"Dégrèvements d'impôts locaux", t:"dep", d:"Impôts locaux pris en charge par l'État à la place des contribuables (programme 201)."},
+  cas:{l:"Retraites des fonctionnaires (CAS Pensions)", t:"etat"},
+  cas_min_norm:{l:"Cotisation « normale » des ministères", t:"niche", d:"Part des contributions employeur comparable à une cotisation retraite classique (≈ 11 Md€ sur ≈ 52 Md€ selon la ministre des Comptes publics, proportion appliquée aux 49,2 Md€ de 2025). DÉJÀ comptée dans les budgets des ministères."},
+  cas_min_eq:{l:"Cotisation d'équilibre des ministères", t:"niche", d:"Complément versé parce qu'il y a moins de fonctionnaires actifs que de retraités (0,9 actif par retraité) : ≈ 41 Md€ sur ≈ 52 Md€ selon la ministre, proportion appliquée à 2025. DÉJÀ comptée dans les budgets des ministères."},
+  cas_emp:{l:"Autres employeurs publics", t:"rec", d:"Opérateurs de l'État, La Poste, Orange… qui emploient des fonctionnaires."},
+  cas_agents:{l:"Retenues sur salaires", t:"rec", d:"Cotisation salariale retraite des fonctionnaires."},
+  cas_comp:{l:"Subventions et compensations", t:"rec", d:"Subventions d'équilibre (pensions de guerre…) et compensations entre régimes."},
+  cas_autres:{l:"Autres recettes", t:"rec"},
+  cas_def:{l:"Déficit du CAS (sur sa réserve)", t:"deficit"},
+  cas_civ:{l:"Pensions civiles", t:"dep", d:"Retraites des fonctionnaires civils de l'État (enseignants, policiers, agents des finances…)."},
+  cas_mil:{l:"Pensions militaires", t:"dep"},
+  cas_vg:{l:"Pensions de guerre et victimes", t:"dep"},
+  cas_ati:{l:"Allocations temporaires d'invalidité", t:"dep"},
+});
+Object.assign(NODES, {
+  b_fdc_dep:{l:"Dépenses sur fonds de concours", t:"dep", d:"Dépenses financées par des fonds de concours, non ventilées par ministère dans la loi de finances."},
+  cas_reste:{l:"Autres recettes du CAS et solde", t:"rec", d:"Retenues sur salaires des fonctionnaires, autres employeurs (opérateurs, La Poste, Orange), subventions, compensations et éventuel déficit : le détail 2026 n'est pas dans le document de la loi de finances."},
+  cas_contrib:{l:"Cotisations retraite des fonctionnaires", t:"niche", d:"Contributions employeur des ministères au CAS Pensions (49,2 Md€ en 2025), retirées des montants des ministères : environ 21 % de cotisation « normale » et 79 % de cotisation d'équilibre (répartition 11/41 Md€ donnée par la ministre des Comptes publics). Montants par ministère tirés des rapports annuels de performances 2025."},
+  cas_tot:{l:"Pensions et allocations (crédits votés)", t:"dep", d:"Crédits de la mission « Pensions » votés pour 2026."},
+});
+const MIN_ORDER = Array.from({length:40},(_,i)=>"m"+i);
+function setMinNodes(y){
+  F.budget_view[y].ministeres.forEach(m=>{
+    NODES[m.id] = {l:m.l, t:"dep", d:(m.pensions?`Total ${m.v.toLocaleString("fr-FR",{maximumFractionDigits:1})} Md€, dont ${m.pensions.toLocaleString("fr-FR",{maximumFractionDigits:1})} Md€ de cotisations retraite des agents → ${(m.v-m.pensions).toLocaleString("fr-FR",{maximumFractionDigits:1})} Md€ hors pensions<br>`:"") + m.pieces.map(p=>`${p[0]} : ${p[1].toLocaleString("fr-FR",{maximumFractionDigits:1})} Md€`).join("<br>")};
+  });
+  NODES.b_ticpe.l = y>=2026 ? "Accises sur les énergies (brut)" : "Accise sur l'énergie (part État)";
+}
+const isLFI = y => (F.budget_view[y]||{}).statut==="LFI";
+const ORDER_B = ["b_ir","b_tva","b_is","b_ticpe","b_autres","b_rnf","b_fdc","b_deficit","cas_min_norm","cas_min_eq","cas_emp","cas_agents","cas_comp","cas_autres","cas_reste","cas_def",
+  "budget","cas_contrib","cas", ...MIN_ORDER, "b_psr_coll","b_psr_ue","b_rd_loc","b_fdc_dep","cas_civ","cas_mil","cas_vg","cas_ati","cas_tot"];
+
+const nf1 = new Intl.NumberFormat("fr-FR",{maximumFractionDigits:1, minimumFractionDigits:1});
+const nf0 = new Intl.NumberFormat("fr-FR",{maximumFractionDigits:0});
+function fmt(md){
+  if(state.unit==="hab"){ const pop = F.pop[state.year] || 68.4; return nf0.format(md*1000/pop) + " €"; }
+  return (Math.abs(md) >= 100 ? nf0.format(md) : nf1.format(md)) + " Md€";
+}
+const unitNote = () => state.unit==="hab" ? "euros par habitant" : "milliards d'euros";
+
+// contrôles
+const yc = document.getElementById("c-year");
+[...new Set([...Object.keys(F.years), ...Object.keys(F.budget_view||{})])].sort().forEach(y=>{
+  const b=document.createElement("button"); b.dataset.v=y; b.textContent=y; b.setAttribute("aria-pressed", String(+y===state.year)); yc.appendChild(b);
+});
+function bindSeg(id,key,cast){
+  document.getElementById(id).addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    state[key]=cast?cast(b.dataset.v):b.dataset.v;
+    [...e.currentTarget.children].forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    render();
+  });
+}
+bindSeg("c-year","year",Number); bindSeg("c-unit","unit"); bindSeg("c-scope","scope"); bindSeg("c-view","view"); bindSeg("c-blocs","blocs");
+document.getElementById("t-presta").addEventListener("change",e=>{state.presta=e.target.checked; render();});
+document.getElementById("t-isole").addEventListener("change",e=>{state.isole=e.target.checked; render();});
+document.getElementById("t-cas").addEventListener("change",e=>{state.cas=e.target.checked; render();});
+document.getElementById("t-niches").addEventListener("change",e=>{state.niches=e.target.checked; render();});
+document.getElementById("t-fin").addEventListener("change",e=>{state.fin=e.target.checked; render();});
+
+// tooltip
+const tip = document.getElementById("tip");
+function showTip(html, ev){ tip.innerHTML=html; tip.style.opacity=1; moveTip(ev); }
+function moveTip(ev){
+  const w=tip.offsetWidth, h=tip.offsetHeight; let x=ev.clientX+14, y=ev.clientY+14;
+  if(x+w>innerWidth-8) x=ev.clientX-w-14; if(y+h>innerHeight-8) y=ev.clientY-h-14;
+  tip.style.left=Math.max(4,x)+"px"; tip.style.top=Math.max(4,y)+"px";
+}
+function hideTip(){ tip.style.opacity=0; }
+
+// KPI
+function renderKpis(){
+  if(state.view==="ministere"){
+    const t = F.budget_view[yB()].totals;
+    const k = [
+      {l:"Recettes du budget de l'État"+(isLFI(yB())?" (prévues)":""), v:fmt(t.recettes), s:"impôts nets, recettes non fiscales, fonds de concours · "+yB()+(isLFI(yB())?" · budget voté":"")},
+      {l:"Dépenses", v:fmt(t.depenses), s:`ministères ${fmt(t.depenses_nettes)} + versements aux collectivités et à l'UE`},
+      {l:"Déficit du budget général"+(isLFI(yB())?" (prévu)":""), v:fmt(-t.solde_bg), s:`solde général d'exécution : ${fmt(-t.solde_general)}`},
+      {l:"Retraites des fonctionnaires", v:fmt(t.pensions), s:`dont ${fmt(t.contrib_ministeres)} de cotisations payées par les ministères`},
+    ];
+    document.getElementById("kpis").innerHTML = k.map(x=>`<div class="kpi"><div class="l">${x.l}</div><div class="v">${x.v}</div><div class="s">${x.s}</div></div>`).join("");
+    return;
+  }
+  if(!F.years[state.year]){
+    const P = (F.previsions||{})[state.year] || {};
+    const k = [
+      {l:"Déficit public (prévision)", v:(P.deficit_pib!=null? nf1.format(P.deficit_pib)+" % du PIB":"—"), s:P.source||""},
+      {l:"Dépenses publiques (prévision)", v:(P.depenses_pib!=null? nf1.format(P.depenses_pib)+" % du PIB":"—"), s:"toutes administrations publiques"},
+      {l:"Dette publique (prévision)", v:(P.dette_pib!=null? nf1.format(P.dette_pib)+" % du PIB":"—"), s:"fin d'année"},
+    ];
+    document.getElementById("kpis").innerHTML = k.map(x=>`<div class="kpi"><div class="l">${x.l}</div><div class="v">${x.v}</div><div class="s">${x.s}</div></div>`).join("");
+    return;
+  }
+  const T = F.years[state.year].totals;
+  const key = state.scope==="both" ? "conso" : state.scope;
+  const t = {...T[key]};
+  const addN = state.niches && T.niches && state.scope!=="coll" ? T.niches.ajout : 0;
+  const scopeLbl = {both:"État élargi + collectivités", etat:"État élargi (hors Bpifrance/CDC)", coll:"Collectivités locales"}[state.scope];
+  const k = [
+    {l:"Recettes publiques", v:fmt(t.recettes), s:scopeLbl + (addN?` · ${fmt(t.recettes+addN)} si l'on compte les niches`:"")},
+    {l:"Dépenses publiques", v:fmt(t.depenses), s:scopeLbl + (addN?` · ${fmt(t.depenses+addN)} si l'on compte les niches`:"")},
+    {l:t.solde<0?"Déficit":"Excédent", v:fmt(Math.abs(t.solde)), s: t.solde<0 ? nf0.format(-t.solde/t.depenses*100)+" % des dépenses financés par emprunt" : ""},
+  ];
+  if(state.scope!=="coll" && T.niches) k.push({l:"Niches fiscales & sociales", v:fmt(T.niches.fiscales_brut + T.niches.allegements), s:"recettes auxquelles on renonce"});
+  if(state.fin && state.scope!=="coll" && T.financements) k.push({l:"Bpifrance & CDC", v:fmt(T.financements), s:"prêts, garanties, participations (engagements)"});
+  document.getElementById("kpis").innerHTML = k.map(x=>`<div class="kpi"><div class="l">${x.l}</div><div class="v">${x.v}</div><div class="s">${x.s}</div></div>`).join("");
+}
+
+// aides aux entreprises
+function renderAides(){
+  if(!F.years[state.year]){ document.getElementById("aides-year").textContent = "· "+state.year; document.getElementById("aides").innerHTML = `<p class="sub">Non disponible pour ${state.year} (comptes pas encore publiés).</p>`; return; }
+  const T = F.years[state.year].totals;
+  document.getElementById("aides-year").textContent = "· " + state.year;
+  if(!T.niches){ document.getElementById("aides").innerHTML=""; return; }
+  const items = [
+    {c:"in", l:"Subventions", v:T.subventions, s:"Dépenses réelles (État, Sécu, collectivités). Bande « Subventions aux entreprises »."},
+    {c:"ni", l:"Niches fiscales des entreprises", v:T.niches.fiscales_entreprises, s:"Manque à gagner, dont crédit d'impôt recherche ≈ 8 Md€ (déjà en dépense). Estimation Sénat 2023."},
+    {c:"ni", l:"Allègements de cotisations", v:T.niches.allegements, s:"Manque à gagner pour la Sécu, compensé en grande partie par l'État. Estimation Sénat 2023."},
+    {c:"fi", l:"Bpifrance (engagements)", v:T.bpi||0, s:"Surtout des prêts remboursables, garanties et assurance export : pas un coût équivalent."},
+  ];
+  const sub = T.subventions + T.niches.fiscales_entreprises + T.niches.allegements;
+  items.push({c:"", l:"Total hors Bpifrance", v:sub, s:`≈ ${fmt(sub + (T.bpi||0))} en ajoutant les engagements de Bpifrance (le Sénat retient 211 Md€ pour 2023, avec 42 Md€ pour Bpifrance).`});
+  document.getElementById("aides").innerHTML = items.map(x=>`<div class="aide ${x.c}"><div class="l">${x.l}</div><div class="v">${fmt(x.v)}</div><div class="s">${x.s}</div></div>`).join("");
+}
+
+// liens selon les options
+function currentLinks(){
+  if(state.view==="ministere"){
+    const BV = F.budget_view[yB()]; setMinNodes(yB());
+    let L = BV.links.map(d=>({...d}));
+    let C = state.cas ? BV.cas_links.map(d=>({...d})) : [];
+    const pm = Object.fromEntries(BV.ministeres.filter(m=>m.pensions!=null).map(m=>[m.id,m.pensions]));
+    const totP = Object.values(pm).reduce((a,b)=>a+b,0);
+    if(state.isole && totP>0){
+      L = L.map(d=> pm[d.target]!=null ? {...d, value:+(d.value-pm[d.target]).toFixed(2), horsP:true} : d);
+      L.push({source:"budget", target:"cas_contrib", value:+totP.toFixed(2), kind:"pension"});
+      if(state.cas){ C = C.filter(d=>!/^cas_min/.test(d.source)); C.push({source:"cas_contrib", target:"cas", value:+totP.toFixed(2), kind:"pension"}); }
+    }
+    return L.concat(C);
+  }
+  const Y = F.years[state.year];
+  let L = (Y.modes ? Y.modes[state.blocs] : Y.links).map(d=>({...d}));
+  if(!state.niches) L = L.filter(d=>d.kind!=="niche");
+  if(!state.fin) L = L.filter(d=>d.kind!=="fin");
+  if(state.presta) L = L.flatMap(d=> d.detail ? Object.entries(d.detail).map(([k,v])=>({source:d.source,target:k,value:v,est:+state.year!==2024})) : [d]);
+  const CENTERS = ["etat","c_etat","c_secu","coll","apu"];
+  if(state.scope==="both" || state.blocs==="1") return L;
+  const keep = state.scope==="coll" ? ["coll"] : ["etat","c_etat","c_secu"];
+  const out = [];
+  for(const d of L){
+    const sIn = keep.includes(d.source), tIn = keep.includes(d.target);
+    const sC = CENTERS.includes(d.source), tC = CENTERS.includes(d.target);
+    if(d.kind==="fin"){ if(state.scope!=="coll") out.push(d); continue; }
+    if(sIn && tIn) out.push(d);
+    else if(sIn && !tC) out.push(d);
+    else if(tIn && !sC) out.push(d);
+    else if(sIn && tC) out.push({...d, target:(d.target==="coll"?"vers_coll":"vers_"+d.target)});
+    else if(tIn && sC) out.push({...d, source:"de_"+d.source});
+  }
+  return out;
+}
+
+function renderSankey(){
+  const svg = d3.select("#sankey");
+  const miss = document.getElementById("nat-missing");
+  if(state.view==="nature" && !F.years[state.year]){
+    svg.style("display","none"); miss.style.display="";
+    miss.innerHTML = `<b>Pas encore de comptes « par nature » pour ${state.year}.</b> Les comptes de l'État, de la Sécurité sociale et des collectivités pour ${state.year} seront publiés par l'Insee au printemps ${state.year+1}. Pour ${state.year}, passez sur la vue <b>« Par ministère (budget de l'État) »</b> : elle montre le budget voté par le Parlement. Les prévisions du gouvernement pour l'ensemble des administrations sont affichées en haut de page.`;
+    return;
+  }
+  svg.style("display",null); miss.style.display="none";
+  const box = svg.node().parentNode.getBoundingClientRect();
+  const links = currentLinks();
+  const ORD = state.view==="ministere" ? ORDER_B : ORDER;
+  const ids = [...new Set(links.flatMap(d=>[d.source,d.target]))].sort((a,b)=>ORD.indexOf(a)-ORD.indexOf(b));
+  const srcIds = new Set(links.map(d=>d.source)), tgtIds = new Set(links.map(d=>d.target));
+  const nLeft = ids.filter(i=>!tgtIds.has(i)).length, nRight = ids.filter(i=>!srcIds.has(i)).length;
+  const W = Math.max(state.view==="ministere" ? 1000 : 920, box.width), H = Math.max(520, 42*Math.max(nLeft, nRight) + 60);
+  svg.attr("viewBox",`0 0 ${W} ${H}`).attr("width",W).attr("height",H);
+  svg.selectAll("*").remove();
+
+  // motifs hachurés
+  const defs = svg.append("defs");
+  [["niche","--niche"],["fin","--fin"]].forEach(([k,v])=>{
+    const p = defs.append("pattern").attr("id","h-"+k).attr("patternUnits","userSpaceOnUse").attr("width",6).attr("height",6).attr("patternTransform","rotate(45)");
+    p.append("rect").attr("width",6).attr("height",6).attr("fill",css(v)).attr("fill-opacity",.18);
+    p.append("rect").attr("width",2.4).attr("height",6).attr("fill",css(v)).attr("fill-opacity",.75);
+  });
+
+  const nodes = ids.map(id=>({id, ...NODES[id]}));
+  const mL = state.view==="ministere" ? 270 : 230, mR = state.view==="ministere" ? 360 : 270, top = 26;
+  const sk = d3.sankey().nodeId(d=>d.id).nodeWidth(14).nodePadding(15)
+    .nodeAlign(d3.sankeyJustify)
+    .nodeSort((a,b)=>{ const ma=/^m\d+$/.test(a.id), mb=/^m\d+$/.test(b.id); if(ma&&mb) return b.value-a.value; return ORD.indexOf(a.id)-ORD.indexOf(b.id); })
+    .linkSort(null)
+    .extent([[mL, top],[W-mR, H-8]]);
+  const g = sk({nodes:nodes.map(d=>({...d})), links:links.map(d=>({...d}))});
+  const totalIn = d3.sum(g.nodes.filter(n=>n.depth===0 && n.t!=="fin"), n=>n.value);
+
+  const xs = [...new Set(g.nodes.map(n=>n.x0))].sort((a,b)=>a-b);
+  svg.append("text").attr("class","colhead").attr("x",xs[0]-6).attr("y",12).attr("text-anchor","end").text("D'où vient l'argent");
+  svg.append("text").attr("class","colhead").attr("x",xs[xs.length-1]+20).attr("y",12).text("Où il va");
+
+  const hatch = d => (d.kind==="niche"||d.kind==="pension") ? "url(#h-niche)" : d.kind==="fin" ? "url(#h-fin)" : null;
+  const strokeOf = d => hatch(d) || (d.source.t==="deficit" ? colorOf("deficit")
+      : d.kind==="transfer" ? colorOf("transfer")
+      : (d.target.t==="dep"||d.target.t==="transfer") ? colorOf(d.source.t) : colorOf(d.target.t));
+  const link = svg.append("g").selectAll("path").data(g.links).join("path")
+    .attr("class",d=> "link" + (d.kind==="transfer"?" transfer":"") + (hatch(d)?" hatch":""))
+    .attr("d", d3.sankeyLinkHorizontal())
+    .attr("stroke", strokeOf)
+    .attr("stroke-width", d=>Math.max(1,d.width))
+    .on("mouseenter",(ev,d)=>{
+      link.classed("dim",l=>l!==d).classed("hi",l=>l===d);
+      const base = d.source.depth===0 ? d.target : d.source;
+      const pct = d.value / base.value * 100;
+      const ctx = d.source.depth===0 ? `${nf0.format(pct)} % des ressources de « ${d.target.l} »` : `${nf0.format(pct)} % des emplois de « ${d.source.l} »`;
+      const note = d.horsP ? "<br><i>Hors cotisations retraite des agents (sorties vers le bloc des retraites)</i>" : d.kind==="pension" ? "<br><i>Cotisations retraite payées par les ministères, isolées de leurs budgets</i>" : d.brut ? `<br><i>Net de ${fmt(d.brut[0])} versés et ${fmt(d.brut[1])} reçus en sens inverse</i>` : d.est ? "<br><i>Répartition par fonction de 2024 appliquée au total de l'année</i>" : d.kind==="niche" ? "<br><i>Manque à gagner compté comme dépense</i>" : d.kind==="fin" ? "<br><i>Engagement de financement, pas une dépense définitive</i>" : "";
+      showTip(`<b>${d.source.l} → ${d.target.l}</b><br>${fmt(d.value)}<br><span style="opacity:.75">${ctx}</span>${note}`, ev);
+    })
+    .on("mousemove",moveTip)
+    .on("mouseleave",()=>{ link.classed("dim",false).classed("hi",false); hideTip(); });
+
+  const TRs = g.links.filter(l=>l.kind==="transfer" && ["etat","c_etat","c_secu","coll"].includes(l.source.id) && ["etat","c_etat","c_secu","coll"].includes(l.target.id));
+  if(TRs.length===1) TRs.forEach(tr=>{
+    const mx=(tr.source.x1+tr.target.x0)/2, my=(tr.y0+tr.y1)/2;
+    svg.append("text").attr("x",mx).attr("y",my-tr.width/2-6).attr("text-anchor","middle").style("font-weight",600).style("fill",colorOf("transfer")).style("font-size","12px")
+      .style("paint-order","stroke").style("stroke",css("--panel")).style("stroke-width","4px").text("Transferts nets · "+fmt(tr.value));
+  });
+
+  const T = (F.years[state.year]||{}).totals || {};
+  const node = svg.append("g").selectAll("g").data(g.nodes).join("g").attr("class","node");
+  node.append("rect")
+    .attr("x",d=>d.x0).attr("y",d=>d.y0).attr("width",d=>d.x1-d.x0).attr("height",d=>Math.max(1,d.y1-d.y0))
+    .attr("fill",d=> (d.t==="niche"||d.t==="fin") ? `url(#h-${d.t})` : colorOf(d.t))
+    .attr("stroke",d=> (d.t==="niche"||d.t==="fin") ? colorOf(d.t) : null)
+    .on("mouseenter",(ev,d)=>{
+      link.classed("dim",l=>l.source!==d && l.target!==d).classed("hi",l=>l.source===d||l.target===d);
+      let extra = "";
+      if(["etat","coll","secu"].includes(d.t)){
+        extra = `<br>Entrées : ${fmt(d3.sum(d.targetLinks,l=>l.value))}<br>Sorties : ${fmt(d3.sum(d.sourceLinks,l=>l.value))}`;
+        if(d.id==="etat" && T.composition) extra += `<br><span style="opacity:.75">dont État et agences : ${fmt(T.composition.etat_central.depenses)} de dépenses · Sécurité sociale : ${fmt(T.composition.secu.depenses)} (avant consolidation)</span>`;
+      } else {
+        extra = `<br>${fmt(d.value)}` + (d.t!=="fin" ? ` · ${nf0.format(d.value/totalIn*100)} % du total` : "") + (d.d?`<br><span style="opacity:.75">${d.d}</span>`:"");
+      }
+      showTip(`<b>${d.l}</b>${extra}`, ev);
+    })
+    .on("mousemove",moveTip)
+    .on("mouseleave",()=>{ link.classed("dim",false).classed("hi",false); hideTip(); });
+
+  node.each(function(d){
+    const sel = d3.select(this);
+    const h = d.y1-d.y0, cy=(d.y0+d.y1)/2;
+    const center = (["etat","coll","secu"].includes(d.t)||d.id==="fin");
+    if(center){
+      sel.append("text").attr("x",d.x1+6).attr("y",d.y0-14).style("font-weight",650).style("fill",colorOf(d.t)).text(d.l);
+      sel.append("text").attr("class","lab-v").attr("x",d.x1+6).attr("y",d.y0-1).text(fmt(d.value));
+      return;
+    }
+    const left = d.depth===0;
+    const x = left ? d.x0-8 : d.x1+8, anchor = left ? "end" : "start";
+    if(h >= 20){
+      sel.append("text").attr("x",x).attr("y",cy-2).attr("text-anchor",anchor).text(d.l);
+      sel.append("text").attr("class","lab-v").attr("x",x).attr("y",cy+12).attr("text-anchor",anchor).text(fmt(d.value));
+    } else {
+      sel.append("text").attr("x",x).attr("y",cy+4).attr("text-anchor",anchor).text(d.l+"  ").append("tspan").attr("class","lab-v").text(fmt(d.value));
+    }
+  });
+}
+
+// Fonctions (COFOG)
+const COFOG = {
+  GF01:"Services publics généraux", GF0101:"Pouvoirs publics, finances, affaires étrangères", GF0102:"Aide au développement", GF0103:"Services généraux", GF0104:"Recherche fondamentale", GF0105:"R&D services généraux", GF0106:"Autres services généraux", GF0107:"Intérêts de la dette", GF0108:"Transferts entre administrations",
+  GF02:"Défense", GF0201:"Défense militaire", GF0202:"Défense civile", GF0203:"Aide militaire à l'étranger", GF0204:"R&D défense", GF0205:"Autres (défense)",
+  GF03:"Ordre et sécurité publics", GF0301:"Police, gendarmerie", GF0302:"Pompiers, protection civile", GF0303:"Justice (tribunaux)", GF0304:"Prisons", GF0305:"R&D sécurité", GF0306:"Autres (sécurité)",
+  GF04:"Affaires économiques", GF0401:"Économie, commerce, emploi", GF0402:"Agriculture, forêt, pêche", GF0403:"Énergie", GF0404:"Industrie, construction", GF0405:"Transports", GF0406:"Communications", GF0407:"Autres branches (tourisme…)", GF0408:"R&D économique", GF0409:"Autres (économie)",
+  GF05:"Environnement", GF0501:"Déchets", GF0502:"Eaux usées", GF0503:"Lutte contre la pollution", GF0504:"Biodiversité, paysages", GF0505:"R&D environnement", GF0506:"Autres (environnement)",
+  GF06:"Logement et équipements collectifs", GF0601:"Logement", GF0602:"Aménagement du territoire", GF0603:"Eau potable", GF0604:"Éclairage public", GF0605:"R&D logement", GF0606:"Autres (logement)",
+  GF07:"Santé", GF0701:"Médicaments, appareils médicaux", GF0702:"Soins de ville", GF0703:"Hôpitaux", GF0704:"Santé publique", GF0705:"R&D santé", GF0706:"Autres (santé)",
+  GF08:"Sport, culture, culte", GF0801:"Sports et loisirs", GF0802:"Culture", GF0803:"Audiovisuel, édition", GF0804:"Culte, vie associative", GF0805:"R&D culture", GF0806:"Autres (culture)",
+  GF09:"Enseignement", GF0901:"Maternelle et primaire", GF0902:"Collège et lycée", GF0903:"Post-bac non supérieur", GF0904:"Enseignement supérieur", GF0905:"Non ventilé par niveau", GF0906:"Cantines, transport scolaire…", GF0907:"R&D enseignement", GF0908:"Autres (enseignement)",
+  GF10:"Protection sociale", GF1001:"Maladie, invalidité, handicap", GF1002:"Vieillesse (retraites)", GF1003:"Survivants (pensions de réversion)", GF1004:"Famille, enfance", GF1005:"Chômage", GF1006:"Logement (aides)", GF1007:"Exclusion sociale (RSA…)", GF1008:"R&D protection sociale", GF1009:"Autres (protection sociale)"
+};
+const openFn = new Set(["GF10"]);
+function renderFunctions(){
+  const yrs = Object.keys(F.cofog).map(Number);
+  const el = document.getElementById("fn");
+  if(!yrs.length){ el.innerHTML="<p class='sub'>Données non disponibles.</p>"; return; }
+  const y = yrs.includes(state.year) ? state.year : Math.max(...yrs);
+  document.getElementById("fn-year").textContent = "· " + y + (y!==state.year ? " (dernière année disponible)" : "");
+  const C = F.cofog[y];
+  const val = code => {
+    let [e,c] = C[code] || [0,0];
+    if(state.scope==="etat") c=0; if(state.scope==="coll") e=0;
+    return [Math.max(0,e),Math.max(0,c)];
+  };
+  const l1 = Object.keys(COFOG).filter(k=>k.length===4).map(k=>({k, v:val(k)})).sort((a,b)=>(b.v[0]+b.v[1])-(a.v[0]+a.v[1]));
+  const max = d3.max(l1, d=>d.v[0]+d.v[1]);
+  const total = d3.sum(l1, d=>d.v[0]+d.v[1]);
+  const maxW = Math.min(620, el.getBoundingClientRect().width - 260);
+  const bar = (v, small) => {
+    const s = v[0]+v[1], w = s/max*Math.max(120,maxW);
+    return `<div class="bar"><div class="track${small?" small":""}" style="width:${w}px"><div class="seg-e" style="width:${s? v[0]/s*100:0}%"></div><div class="seg-c" style="width:${s? v[1]/s*100:0}%"></div></div><span class="num">${fmt(s)}${small?"":" · "+nf0.format(s/total*100)+" %"}</span></div>`;
+  };
+  let h = "";
+  for(const d of l1){
+    const s = d.v[0]+d.v[1]; if(s<0.05) continue;
+    const isOpen = openFn.has(d.k);
+    h += `<div class="fn"><div class="name${isOpen?" open":""}" data-k="${d.k}" data-tip="État élargi : ${fmt(d.v[0])}<br>Collectivités : ${fmt(d.v[1])}"><span class="car">▸</span>${COFOG[d.k]}</div>${bar(d.v)}`;
+    if(isOpen){
+      const subs = Object.keys(COFOG).filter(k=>k.length===6 && k.startsWith(d.k)).map(k=>({k,v:val(k)})).filter(x=>x.v[0]+x.v[1]>=0.05).sort((a,b)=>(b.v[0]+b.v[1])-(a.v[0]+a.v[1]));
+      for(const sd of subs) h += `<div class="name sub" data-tip="État élargi : ${fmt(sd.v[0])}<br>Collectivités : ${fmt(sd.v[1])}">${COFOG[sd.k]}</div>${bar(sd.v,true)}`;
+    }
+    h += `</div>`;
+  }
+  el.innerHTML = h;
+  el.querySelectorAll(".name").forEach(n=>{
+    n.addEventListener("mouseenter",ev=>showTip(`<b>${n.textContent.replace("▸","")}</b><br>${n.dataset.tip}`,ev));
+    n.addEventListener("mousemove",moveTip); n.addEventListener("mouseleave",hideTip);
+    if(n.dataset.k) n.addEventListener("click",()=>{ openFn.has(n.dataset.k)?openFn.delete(n.dataset.k):openFn.add(n.dataset.k); hideTip(); renderFunctions(); });
+  });
+}
+
+const MISSION_INFO = {
+  "Enseignement scolaire":"Écoles, collèges, lycées : essentiellement les salaires des enseignants (cotisations retraite comprises).",
+  "Défense":"Armées, équipements militaires, dissuasion, personnels.",
+  "Engagements financiers de l'État":"Surtout la charge de la dette (≈ 51,6 Md€ en 2025).",
+  "Solidarité, insertion et égalité des chances":"Prime d'activité, allocation aux adultes handicapés (AAH), protection des personnes…",
+  "Recherche et enseignement supérieur":"Universités, organismes de recherche (CNRS, CEA…), vie étudiante, recherche spatiale.",
+  "Écologie, développement et mobilité durables":"Infrastructures de transport, énergie (soutien aux renouvelables, chèque énergie), météo, prévention des risques.",
+  "Sécurités":"Police nationale, gendarmerie, sécurité civile, sécurité routière.",
+  "Cohésion des territoires":"Aides personnelles au logement (APL), hébergement d'urgence, politique de la ville.",
+  "Travail, emploi et administration des ministères sociaux":"Apprentissage, France Travail, insertion professionnelle.",
+  "Justice":"Tribunaux, administration pénitentiaire, protection judiciaire de la jeunesse.",
+  "Gestion des finances publiques":"DGFiP, douanes : collecte de l'impôt et gestion comptable.",
+  "Régimes sociaux et de retraite":"Subventions d'équilibre aux régimes spéciaux de retraite (SNCF, RATP, marins, mines…).",
+  "Relations avec les collectivités territoriales":"Dotations d'investissement versées aux collectivités (en plus des prélèvements sur recettes).",
+  "Remboursements et dégrèvements":"Pas une politique : restitutions d'impôts (crédits de TVA remboursés aux entreprises, crédits d'impôt, dégrèvements d'impôts locaux…). Dans le diagramme, ils sont déjà déduits des recettes."
+};
+const openMin = new Set();
+function renderBudget(){
+  const el = document.getElementById("budget");
+  if(!BV_YEARS.length){ el.innerHTML=""; return; }
+  const y = yB(), BV = F.budget_view[y], t = BV.totals;
+  setMinNodes(y);
+  document.getElementById("bud-intro").textContent = isLFI(y)
+    ? `Crédits de paiement votés pour ${y} sur le budget général (prévision), regroupés selon les ministères du gouvernement en place en ${y}.`
+    : `Crédits de paiement réellement dépensés en ${y} sur le budget général, regroupés par ministère (gouvernement en place l'essentiel de l'année).`;
+  document.getElementById("bud-year").textContent = "· " + y + (isLFI(y) ? " — budget voté (prévision)" : " — dépenses réelles") + (y!==state.year ? " (année la plus proche disponible)" : "");
+  const rows = BV.ministeres.slice().sort((a,b)=> state.isole ? (b.v-(b.pensions||0))-(a.v-(a.pensions||0)) : b.v-a.v).map(m=>({k:m.l, id:m.id, v:m.v, c:"e", pieces:m.pieces, p:m.pensions}));
+  rows.push({k:"Versé aux collectivités (prélèvements sur recettes)", v:t.psr_coll, c:"t", d:NODES.b_psr_coll.d});
+  rows.push({k:"Versé au budget de l'UE (prélèvement sur recettes)", v:t.psr_ue, c:"t", d:NODES.b_psr_ue.d});
+  if(BV.fdc_depenses) rows.push({k:"Dépenses sur fonds de concours (non ventilées)", v:BV.fdc_depenses, c:"r", d:NODES.b_fdc_dep.d});
+  rows.push({k:"Remboursements et dégrèvements d'impôts", v:t.rd, c:"r", d:"Pas une politique : restitutions d'impôts (crédits de TVA remboursés aux entreprises, crédits d'impôt, dégrèvements d'impôts locaux…). Dans le diagramme, ils sont déjà déduits des recettes, sauf les dégrèvements d'impôts locaux (4,5 Md€)."});
+  const max = d3.max(rows, r=>r.v);
+  const maxW = Math.min(560, el.getBoundingClientRect().width - 300);
+  const bar = (v,c,small,p) => `<div class="bar"><div class="track${small?" small":""}" style="width:${v/max*Math.max(100,maxW)}px"><div class="seg-${c}" style="width:${p?(v-p)/v*100:100}%"></div>${p?`<div class="seg-p" style="width:${p/v*100}%"></div>`:""}</div><span class="num">${fmt(v)}${p>=0.05?` · dont ${fmt(p)} de cotisations retraite → <b>${fmt(v-p)}</b> hors pensions`:""}</span></div>`;
+  let h = "";
+  for(const r of rows){
+    const open = r.pieces && openMin.has(r.id);
+    h += `<div class="fn"><div class="name${open?" open":""}" ${r.pieces?`data-k="${r.id}"`:'style="cursor:help"'} data-tip="${(r.d||"").replace(/"/g,"&quot;")}">${r.pieces?'<span class="car">▸</span>':""}${r.k}</div>${bar(r.v,r.c,false,r.p)}`;
+    if(open) for(const p of r.pieces) h += `<div class="name sub">${p[0]}</div>${bar(p[1],"e",true)}`;
+    h += `</div>`;
+  }
+  el.innerHTML = h;
+  el.querySelectorAll(".name").forEach(n=>{
+    n.addEventListener("mouseenter",ev=>{ if(n.dataset.tip) showTip(`<b>${n.textContent.replace("▸","")}</b><br>${n.dataset.tip}`,ev); });
+    n.addEventListener("mousemove",moveTip); n.addEventListener("mouseleave",hideTip);
+    if(n.dataset.k) n.addEventListener("click",()=>{ openMin.has(n.dataset.k)?openMin.delete(n.dataset.k):openMin.add(n.dataset.k); hideTip(); renderBudget(); });
+  });
+  const minTot = d3.sum(BV.ministeres, m=>m.v);
+  document.getElementById("bud-foot").innerHTML = isLFI(y)
+    ? `Total des ministères : <b>${fmt(minTot)}</b> de crédits votés (+ ${fmt(t.rd_locaux)} de dégrèvements d'impôts locaux + ${fmt(BV.fdc_depenses)} sur fonds de concours = ${fmt(t.depenses_nettes)} de charges nettes du budget général). Le document voté ne donne que les missions : quand une mission relève de plusieurs ministères, elle est répartie selon les programmes constatés en 2025 (approximation). Ministères : gouvernement en place en 2026 (liste des plafonds d'emplois de la loi de finances). Source : direction du Budget, « Le budget de l'État voté pour 2026 en quelques chiffres » (loi n° 2026-103 du 19 février 2026).`
+    : `Total des ministères : <b>${fmt(t.depenses_nettes - t.rd_locaux)}</b> (+ ${fmt(t.rd_locaux)} de dégrèvements d'impôts locaux = ${fmt(t.depenses_nettes)} de dépenses nettes du budget général, chiffre officiel). ` + (y===2024
+      ? "Les ministères sont regroupés comme en 2025 pour permettre la comparaison (gouvernements Attal puis Barnier en 2024). Source : Cour des comptes, Le budget de l'État en 2025 (colonne exécution 2024) ; DGFiP, situation mensuelle de l'État de décembre 2025 (exécution 2024, format 2024)."
+      : "Source : DGFiP, situation mensuelle de l'État, décembre 2025 ; Cour des comptes, Le budget de l'État en 2025.");
+  const CHG = `<b>Attention aux comparaisons entre années</b> : les ministères suivent le gouvernement en place. Entre 2025 et 2026 :
+    <br>• <b>Bercy est scindé</b> : la DGFiP, les douanes et la fonction publique passent à « Action et Comptes publics » (2,8 Md€ de cotisations retraite en 2026) ; « Économie, Finances, Souveraineté » ne garde que l'Insee, la DG Trésor, la DGE… (0,25 Md€). À périmètre constant, les deux font 3,1 Md€ en 2026 contre 2,9 Md€ en 2025.
+    <br>• <b>« Aménagement du territoire, Décentralisation, Logement »</b> devient deux ministères : « Ville et Logement » (APL, hébergement, politique de la ville) et « Aménagement du territoire et Décentralisation » (dotations aux collectivités, aménagement).
+    <br>• <b>Changements de nom sans changement de contenu</b> : « Armées » → « Armées et Anciens combattants » ; « Travail, Santé, Solidarités et Familles » → « Travail, Solidarités et Santé » ; « Transition écologique, Énergie, Transports » → « Transition écologique, Transports » (la politique de l'énergie relève de Bercy en 2026, mais ses crédits restent dans la mission Écologie) ; « Agriculture » → « Agriculture et Souveraineté alimentaire » ; « Enseignement supérieur et Recherche » → « … Recherche et Espace ».
+    <br>• <b>2024</b> est présenté avec les ministères de 2025, pour pouvoir comparer ces deux années.`;
+  document.getElementById("bud-note").innerHTML = CHG;
+  // retraites des fonctionnaires
+  const C = {}; BV.cas_links.forEach(l=>{ C[l.source==="cas"?l.target:l.source]=l.value; });
+  if(BV.cas_simplifie){
+    document.getElementById("cas").innerHTML = [
+      {c:"ni", l:"Cotisations retraite payées par les ministères (votées)", v:C.cas_min_norm+C.cas_min_eq, s:`Incluses dans les crédits des ministères ; détail par ministère ci-dessus. Dont ≈ ${fmt(C.cas_min_norm)} de cotisation « normale » et ≈ ${fmt(C.cas_min_eq)} de cotisation d'équilibre, les chiffres cités par la ministre des Comptes publics pour 2026 (≈ 11 et ≈ 41 Md€). Taux civil relevé à 82,28 %.`},
+      {c:"in", l:"Crédits de la mission Pensions (votés)", v:t.pensions, s:"Pensions civiles et militaires, pensions de guerre, allocations d'invalidité."},
+      {c:"", l:"Autres recettes et solde", v:C.cas_reste, s:"Retenues sur salaires, autres employeurs, subventions, compensations : détail non publié dans le document voté."},
+    ].map(x=>`<div class="aide ${x.c}"><div class="l">${x.l}</div><div class="v">${fmt(x.v)}</div><div class="s">${x.s}</div></div>`).join("");
+    document.getElementById("cas-foot").innerHTML = "Cotisations retraite par ministère : crédits votés pour 2026, calculés programme par programme à partir des projets annuels de performances 2027 (colonne « LFI 2026 » : dépenses de personnel y compris et hors CAS Pensions). Total 51,8 Md€, identique au chiffre du rapport général de l'Assemblée nationale sur le PLF 2026. Sources : loi de finances pour 2026 (mission Pensions : 69,9 Md€) ; PAP 2027 (budget.gouv.fr) ; question au Gouvernement n° 898 (partage 11/41).";
+    return;
+  }
+  document.getElementById("cas").innerHTML = [
+    {c:"ni", l:"Cotisations retraite payées par les ministères", v:C.cas_min_norm+C.cas_min_eq, s:`Incluses dans les montants des ministères ci-dessus. Taux ${y===2024?"2024 : 74,28 %":"2025 : 78,28 %"} du traitement pour un civil, 126,07 % pour un militaire. Dont ≈ ${fmt(C.cas_min_norm)} de cotisation « normale » et ≈ ${fmt(C.cas_min_eq)} de cotisation d'équilibre (répartition 11/41 donnée par la ministre des Comptes publics).`},
+    {c:"in", l:"Pensions versées", v:t.pensions, s:`Civiles ${fmt(C.cas_civ)}, militaires ${fmt(C.cas_mil)}, pensions de guerre ${fmt(C.cas_vg)}.`},
+    {c:"", l:"Autres financements", v:C.cas_emp+C.cas_agents+C.cas_comp+C.cas_autres, s:`Retenues sur salaires ${fmt(C.cas_agents)}, autres employeurs ${fmt(C.cas_emp)}, subventions et compensations ${fmt(C.cas_comp)}.`},
+    {c:"", l:"Déficit du compte", v:C.cas_def, s:"Couvert par la réserve du CAS Pensions."},
+  ].map(x=>`<div class="aide ${x.c}"><div class="l">${x.l}</div><div class="v">${fmt(x.v)}</div><div class="s">${x.s}</div></div>`).join("");
+  document.getElementById("cas-foot").innerHTML = `Cotisations retraite par ministère : calculées programme par programme (différence entre les dépenses de personnel « y compris » et « hors » CAS Pensions) à partir des rapports annuels de performances 2025 (exécution ${y}). Leur total (${fmt(C.cas_min_norm+C.cas_min_eq)}) correspond au chiffre publié par l'Assemblée nationale. Les ministères qui paient peu de cotisations (Travail-Santé-Solidarités, Logement, Enseignement supérieur…) emploient peu de fonctionnaires d'État en direct : leurs crédits vont surtout à des prestations ou à des opérateurs (universités, France Travail…). Les retraites des fonctionnaires territoriaux et hospitaliers passent par la CNRACL (Sécurité sociale), visibles dans la vue « par nature ». Sources : RAP 2025 ; retraitesdeletat.gouv.fr ; Assemblée nationale.` + (y===2024 ? " Limite 2024 : le programme 124 (soutien des ministères sociaux), supprimé en 2025, n'est pas repris (montant faible)." : "");
+}
+function renderChecks(){
+  const C = (F.checks||{})[state.year]; const el = document.getElementById("checks");
+  document.getElementById("chk-year").textContent = "· " + state.year;
+  if(!C){ el.innerHTML=""; return; }
+  el.innerHTML = `<tr><th>Indicateur</th><th>Ce site (Md€)</th><th>Référence (Md€)</th><th>Écart</th><th style="text-align:left">Source de référence</th></tr>` +
+    C.map(c=>{ let e=(c.ours-c.ref)/Math.abs(c.ref)*100; if(Math.abs(e)<0.05) e=0; const cls=Math.abs(e)<=1?"ok":"warn";
+      return `<tr ${c.note?`data-note="${c.note.replace(/"/g,"&quot;")}"`:""}><td>${c.l}${c.note?" ⓘ":""}</td><td>${nf1.format(c.ours)}</td><td>${nf1.format(c.ref)}</td><td class="${cls}">${e>0?"+":""}${nf1.format(e)} %</td><td class="src">${c.src}</td></tr>`; }).join("");
+  el.querySelectorAll("tr[data-note]").forEach(tr=>{
+    tr.addEventListener("mouseenter",ev=>showTip(tr.dataset.note,ev)); tr.addEventListener("mousemove",moveTip); tr.addEventListener("mouseleave",hideTip);
+  });
+}
+
+function syncView(){
+  const m = state.view==="ministere";
+  document.getElementById("l-cas").style.display = m ? "" : "none";
+  document.getElementById("l-isole").style.display = (m && (F.budget_view[yB()].ministeres||[]).some(x=>x.pensions)) ? "" : "none";
+  document.getElementById("l-niches").style.display = m ? "none" : "";
+  document.getElementById("l-presta").style.display = m ? "none" : "";
+  document.getElementById("blocs-ctl").style.display = m ? "none" : "";
+  document.getElementById("l-fin").style.display = m ? "none" : "";
+  const noScope = m || state.blocs==="1";
+  document.getElementById("c-scope").style.opacity = noScope ? .4 : 1;
+  document.getElementById("c-scope").style.pointerEvents = noScope ? "none" : "";
+  const note = document.getElementById("view-note");
+  note.style.display = m ? "" : "none";
+  note.innerHTML = m ? `Vue « budget de l'État » ${yB()}${yB()!==state.year?" (année la plus proche disponible)":""}${isLFI(yB())?" — <b>budget voté, donc prévisionnel</b> : les montants réellement dépensés ne seront connus qu'après la clôture de l'année":" — dépenses réellement exécutées"}. Recettes et dépenses du budget général de l'État, en comptabilité budgétaire. C'est un sous-ensemble de l'État élargi (sans la Sécurité sociale, les agences, Bpifrance ni la CDC), avec des règles un peu différentes : les montants ne sont pas directement comparables à la vue « par nature ».` : "";
+}
+function renderAudit(){
+  const A = ((F.years[state.year]||{}).totals||{}).audit; const el = document.getElementById("audit");
+  document.getElementById("audit-year").textContent = "· " + state.year;
+  if(!A){ el.innerHTML=""; return; }
+  el.innerHTML = `<tr><th>Contrôle</th><th>Montant (Md€)</th><th>Attendu (Md€)</th><th>Résultat</th></tr>` + A.map(a=>{
+    const ok = a.ref===null ? "" : (Math.abs(a.v-a.ref) <= 0.15 ? '<td class="ok">✓</td>' : '<td class="warn">écart</td>');
+    return `<tr><td>${a.l}</td><td>${nf1.format(a.v)}</td><td>${a.ref===null?"—":nf1.format(a.ref)}</td>${ok||"<td></td>"}</tr>`; }).join("");
+}
+function render(){
+  syncView(); renderAudit(); renderKpis(); renderSankey(); renderAides(); renderBudget(); renderFunctions(); renderChecks();
+  document.getElementById("foot").textContent = `Montants en ${unitNote()}. Sources : ${F.source}.`;
+}
+render();
+let rt; addEventListener("resize",()=>{clearTimeout(rt); rt=setTimeout(render,150);});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",render);
+})();
+</script>
+<script>if(location.hash.startsWith("#a=")) location.replace("ajustement.html"+location.hash);</script>
+</body>
+</html>

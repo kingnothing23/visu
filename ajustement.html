@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Construire son budget</title>
+<meta name="description" content="Construisez votre propre budget de l'État à partir des dépenses exécutées en 2025 et voyez l'effet sur le déficit.">
+<style>
+:root{
+  --bg:#f7f6f2; --panel:#ffffff; --ink:#1d1f24; --muted:#6b6f78; --line:#e3e1da;
+  --accent:#1f4fd1;
+  --rec:#2f8f6b; --dep:#c4622d; --etat:#1f4fd1; --coll:#7a3fb8; --deficit:#c0303a; --transfer:#7a3fb8;
+  --niche:#d49a00; --fin:#5c7a8f; --secu:#0e8a7e;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121317; --panel:#1b1d23; --ink:#ecebe6; --muted:#9a9ea8; --line:#2c2f37;
+    --accent:#7aa2ff; --rec:#4cc196; --dep:#ea8a55; --etat:#7aa2ff; --coll:#b98bf0; --deficit:#ff6b73; --transfer:#b98bf0;
+    --niche:#f2c14e; --fin:#8fb0c6; --secu:#4fd1c0;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121317; --panel:#1b1d23; --ink:#ecebe6; --muted:#9a9ea8; --line:#2c2f37;
+  --accent:#7aa2ff; --rec:#4cc196; --dep:#ea8a55; --etat:#7aa2ff; --coll:#b98bf0; --deficit:#ff6b73; --transfer:#b98bf0;
+  --niche:#f2c14e; --fin:#8fb0c6; --secu:#4fd1c0;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 16px 64px}
+header h1{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:0 0 6px;letter-spacing:-.01em}
+header p{margin:0;color:var(--muted);max-width:800px}
+.controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin:22px 0 18px}
+.controls>div{max-width:100%}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--panel);padding:3px}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;padding:6px 14px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.ctl-label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:6px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.kpi .l{font-size:12.5px;color:var(--muted)}
+.kpi .v{font-size:26px;font-weight:650;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12.5px;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 10px;box-shadow:var(--shadow);margin-bottom:28px}
+.card h2{font-size:19px;margin:0 0 2px}
+.card .sub{color:var(--muted);font-size:13.5px;margin:0 0 10px}
+.scroller{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#sankey{min-width:920px}
+svg text{fill:var(--ink);font-size:12.5px}
+svg .lab-v{fill:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+svg .colhead{fill:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.link{fill:none;stroke-opacity:.32;transition:stroke-opacity .15s}
+.link.dim{stroke-opacity:.07}
+.link.hi{stroke-opacity:.62}
+.link.transfer{stroke-opacity:.75}
+.link.transfer.dim{stroke-opacity:.2}
+.link.hatch{stroke-opacity:.85}
+.link.hatch.dim{stroke-opacity:.18}
+.node rect{rx:2}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:8px 10px;border-radius:8px;font-size:13px;line-height:1.35;max-width:320px;opacity:0;transition:opacity .1s;z-index:10}
+#tip b{font-weight:650}
+.legend{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:6px 0 4px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend i.h-niche{background:repeating-linear-gradient(45deg,var(--niche) 0 2px,transparent 2px 4px);outline:1px solid var(--niche)}
+.legend i.h-fin{background:repeating-linear-gradient(45deg,var(--fin) 0 2px,transparent 2px 4px);outline:1px solid var(--fin)}
+.toggles{display:flex;flex-wrap:wrap;gap:8px 18px;margin:4px 0 8px;font-size:13.5px}
+.toggles label{display:inline-flex;align-items:center;gap:7px;cursor:pointer}
+.toggles input{accent-color:var(--ink);width:16px;height:16px}
+/* aides */
+.aides{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:8px 0 12px}
+.aide{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.aide .v{font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+.aide .l{font-size:13px}
+.aide .s{font-size:12px;color:var(--muted)}
+.aide.in{border-left:4px solid var(--dep)} .aide.ni{border-left:4px solid var(--niche)} .aide.fi{border-left:4px solid var(--fin)}
+/* fonctions */
+.fn{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:6px 14px;align-items:center;margin:4px 0 12px}
+.fn .name{font-size:14px;cursor:pointer;user-select:none}
+.fn .name .car{display:inline-block;width:14px;color:var(--muted);transition:transform .15s}
+.fn .name.open .car{transform:rotate(90deg)}
+.fn .name.sub{font-size:13px;color:var(--muted);cursor:default;padding-left:18px}
+.bar{display:flex;align-items:center;gap:8px;min-width:0}
+.bar .track{display:flex;height:18px;border-radius:4px;overflow:hidden;flex:0 0 auto}
+.bar .track.small{height:11px}
+.bar .seg-e{background:var(--etat)} .bar .seg-c{background:var(--coll)}
+.bar .num{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.notes{font-size:13.5px;color:var(--muted)}
+.notes h3{color:var(--ink);font-size:15px;margin:18px 0 6px}
+.notes ul{padding-left:18px;margin:6px 0}
+.notes a{color:var(--accent)}
+#checks,#audit{border-collapse:collapse;font-size:13px;min-width:640px;width:100%;margin:6px 0 10px}
+#checks th,#checks td,#audit th,#audit td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+#checks th:first-child,#checks td:first-child,#checks td.src,#audit td:first-child,#audit th:first-child{text-align:left}
+#checks th,#audit th{color:var(--ink);font-weight:600}
+#checks td.ok,#audit td.ok{color:var(--rec)} #checks td.warn,#audit td.warn{color:var(--niche)}
+#checks tr[data-note]{cursor:help}
+.bar .seg-p{background:repeating-linear-gradient(45deg,var(--niche) 0 3px,transparent 3px 6px);box-shadow:inset 0 0 0 1px var(--niche)}
+.bar .seg-t{background:var(--transfer)} .bar .seg-r{background:var(--muted)}
+
+/* onglets */
+.tabs{display:flex;gap:4px;margin:18px 0 4px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:transparent;font:inherit;font-size:15px;font-weight:600;color:var(--muted);padding:10px 16px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs a{font-size:15px;font-weight:600;color:var(--muted);padding:10px 16px;border-bottom:3px solid transparent;margin-bottom:-1px;text-decoration:none}
+.tabs a:hover{color:var(--ink)}
+.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+/* ajustement */
+.aj-pib{font-size:14px;font-weight:600;letter-spacing:0;white-space:nowrap}
+#aj-detail{flex-wrap:wrap}
+.aj-flows{margin:4px 0 16px;border-top:1px solid var(--line);padding-top:10px}
+.aj-flows-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.aj-flows-head h3{font-size:15px;margin:0}
+.aj-flows-head button{font:inherit;font-size:13px;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+#aj-sk{display:block}
+.aj-info{border:1px solid var(--line);background:var(--bg);color:var(--muted);border-radius:50%;width:18px;height:18px;padding:0;font:600 11px/16px system-ui,sans-serif;cursor:pointer;vertical-align:1px;margin-left:2px}
+.aj-info:hover,.aj-info[aria-expanded="true"]{border-color:var(--accent);color:var(--accent)}
+.aj-def{font-weight:400;font-size:12.5px;line-height:1.45;color:var(--muted);margin-top:4px;max-width:640px}
+.aj-hint{color:var(--ink)}
+.aj-tag{display:inline-block;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:0 5px;border-radius:4px;vertical-align:1px}
+.aj-tag.e{background:color-mix(in srgb, var(--etat) 15%, transparent);color:var(--etat)}
+.aj-tag.c{background:color-mix(in srgb, var(--coll) 15%, transparent);color:var(--coll)}
+#aj-scope{flex-wrap:wrap;border-radius:18px}
+.aj-tag.s{background:color-mix(in srgb, var(--secu) 18%, transparent);color:var(--secu)}
+
+.aj-summary{display:grid;grid-template-columns:3fr 1fr;gap:12px;margin:8px 0 12px;position:sticky;top:0;z-index:5;background:var(--panel);padding:8px 0}
+.aj-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.aj-actions{display:flex;flex-direction:column;gap:8px;justify-content:center}
+.aj-actions button{font:inherit;font-size:13.5px;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.aj-actions button:hover{border-color:var(--accent)}
+.kpi .v.good{color:var(--rec)} .kpi .v.bad{color:var(--deficit)}
+.aj-head,.aj-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(140px,220px) 52px 100px 96px;gap:10px;align-items:center}
+.aj-head{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 0;border-bottom:1px solid var(--line)}
+.aj-row{padding:9px 0;border-bottom:1px solid var(--line)}
+.aj-main .aj-name{font-weight:600}
+.aj-sub{padding-left:26px;font-size:13.5px;background:color-mix(in srgb, var(--bg) 60%, transparent)}
+.aj-meta{font-weight:400;font-size:12px;color:var(--muted)}
+.aj-tog{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;width:22px;padding:0}
+.aj-range{width:100%;accent-color:var(--accent)}
+.aj-pct{font-variant-numeric:tabular-nums;font-size:13px;text-align:right;color:var(--muted)}
+.aj-num{width:100%;font:inherit;font-size:13.5px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);text-align:right}
+.aj-numtxt{font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
+.aj-delta{font-variant-numeric:tabular-nums;font-size:13px;text-align:right;color:var(--muted)}
+.aj-delta.up{color:var(--deficit)} .aj-delta.down{color:var(--rec)}
+.aj-warn{color:var(--niche);cursor:help}
+.aj-bar{position:relative;height:5px;margin-top:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.aj-bar span{position:absolute;top:0;bottom:0}
+.aj-bar span.up{background:var(--deficit)} .aj-bar span.down{background:var(--rec)}
+@media (max-width:760px){
+  .aj-summary{grid-template-columns:1fr;position:static}
+  .aj-kpis{grid-template-columns:1fr 1fr}
+  .aj-head{display:none}
+  .aj-row{grid-template-columns:1fr 52px 84px;grid-template-areas:"n n n" "r p d" "x x m"}
+  .aj-row .aj-name{grid-area:n} .aj-row .aj-range{grid-area:r} .aj-row .aj-pct{grid-area:p} .aj-row .aj-delta{grid-area:d}
+  .aj-row .aj-num,.aj-row .aj-numtxt{grid-area:m}
+  .aj-sub{padding-left:12px}
+}
+footer{font-size:12.5px;color:var(--muted);margin-top:24px}
+@media (max-width:760px){
+  .kpi .v{font-size:21px}
+  .fn{grid-template-columns:120px 1fr}
+  .seg button{padding:6px 10px}
+  .fn .bar .track{max-width:calc(100vw - 260px)}
+  .bar .num{font-size:11.5px;white-space:normal}
+  .bar{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>D'où vient et où va l'argent public&nbsp;?</h1>
+    <p>L'<b style="color:var(--etat)">État élargi</b> (État, agences publiques, Sécurité sociale — Assurance maladie, CNAV, CNRACL, Agirc-Arrco, Unédic, hôpitaux… — ainsi que Bpifrance et la Caisse des Dépôts) et les <b style="color:var(--coll)">collectivités locales</b> (communes, intercommunalités, départements, régions et leurs organismes).</p>
+  </header>
+
+  <nav class="tabs">
+    <a href="index.html">Visualisation</a>
+    <a href="ajustement.html" aria-current="page">Ajustement</a>
+  </nav>
+
+    <section class="card">
+      <h2>Construire son budget</h2>
+      <div id="ajust"></div>
+    </section>
+</div>
+<div id="tip"></div>
+
+<script src="lib/d3.min.js"></script>
+<script src="lib/d3-sankey.min.js"></script>
+<script src="data/data.js"></script>
+<script src="ajust.js"></script>
+<script>window.renderAjust();</script>
+</body>
+</html>
