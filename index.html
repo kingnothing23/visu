@@ -157,10 +157,6 @@ footer{font-size:12.5px;color:var(--muted);margin-top:24px}
     <p>L'<b style="color:var(--etat)">État élargi</b> (État, agences publiques, Sécurité sociale — Assurance maladie, CNAV, CNRACL, Agirc-Arrco, Unédic, hôpitaux… — ainsi que Bpifrance et la Caisse des Dépôts) et les <b style="color:var(--coll)">collectivités locales</b> (communes, intercommunalités, départements, régions et leurs organismes).</p>
   </header>
 
-  <nav class="tabs">
-    <a href="index.html" aria-current="page">Visualisation</a>
-    <a href="ajustement.html">Ajustement</a>
-  </nav>
 
   <div id="tab-visu">
   <div class="controls">
@@ -808,6 +804,5 @@ let rt; addEventListener("resize",()=>{clearTimeout(rt); rt=setTimeout(render,15
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",render);
 })();
 </script>
-<script>if(location.hash.startsWith("#a=")) location.replace("ajustement.html"+location.hash);</script>
 </body>
 </html>
