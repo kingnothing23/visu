@@ -148,6 +148,80 @@ footer{font-size:12.5px;color:var(--muted);margin-top:24px}
   .bar .num{font-size:11.5px;white-space:normal}
   .bar{flex-wrap:wrap}
 }
+.tabs{flex-wrap:wrap}
+@media (max-width:760px){ .tabs a{padding:8px 10px;font-size:14px} }
+
+/* ================= impression / export PDF ================= */
+@media print{
+  /* toujours la palette claire sur le papier */
+  :root, :root[data-theme="dark"], :root:not([data-theme="light"]){
+    --bg:#ffffff; --panel:#ffffff; --ink:#1d1f24; --muted:#565b64; --line:#d6d4cd;
+    --accent:#1f4fd1;
+    --rec:#2f8f6b; --dep:#c4622d; --etat:#1f4fd1; --coll:#7a3fb8; --deficit:#c0303a; --transfer:#7a3fb8;
+    --niche:#b88a00; --fin:#5c7a8f; --secu:#0e8a7e; --shadow:none;
+  }
+  @page{ size:A4 portrait; margin:12mm 13mm 11mm; }
+  @page paysage{ size:A4 landscape; margin:9mm 10mm 11mm; }
+  /* le diagramme de flux a sa propre page, en paysage */
+  #tab-visu > section:first-of-type{ page:paysage; break-before:page; break-after:page }
+  /* en-tete compacte sur la page du diagramme pour tout garder ensemble */
+  #tab-visu > section:first-of-type{padding:8px 10px 4px}
+  #tab-visu > section:first-of-type .sub{font-size:9.5px;margin-bottom:3px}
+  #tab-visu > section:first-of-type .controls{margin:2px 0}
+  #tab-visu > section:first-of-type .toggles{font-size:9.5px;margin:1px 0 3px}
+  #tab-visu > section:first-of-type .legend{font-size:9.5px;margin:2px 0 3px}
+  html,body{background:#fff}
+  body{font-size:11.5px;line-height:1.45;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .wrap{max-width:none;padding:0}
+
+  /* navigation et infobulles inutiles sur papier */
+  .tabs,#tip{display:none !important}
+  /* les réglages deviennent une simple légende : on ne garde que l'option active */
+  .controls{margin:4px 0 8px;gap:4px 18px;font-size:11px}
+  .seg{border:0;background:none;padding:0;border-radius:0}
+  .seg button[aria-pressed="false"]{display:none}
+  .seg button[aria-pressed="true"]{background:none;color:var(--ink);font-weight:650;padding:0;font-size:11px}
+  .toggles{font-size:10.5px;color:var(--muted);gap:4px 16px;margin:2px 0 6px}
+  .toggles label:has(input:not(:checked)){display:none}
+  .toggles input{width:11px;height:11px}
+
+  header{margin-bottom:10px}
+  header h1{font-size:28px;margin-bottom:6px}
+  header p{max-width:none;font-size:12px}
+  .kpi{padding:12px 14px}
+  .kpis{gap:8px;margin-bottom:10px;break-inside:avoid}
+  .kpi{padding:8px 10px;box-shadow:none;border-radius:8px}
+  .kpi .v{font-size:19px}
+  .kpi .l,.kpi .s{font-size:10px}
+
+  .card{box-shadow:none;border-radius:8px;padding:10px 12px 6px;margin:0 0 10px;break-inside:auto}
+  .card h2{font-size:15px;break-after:avoid}
+  .card .sub{font-size:10.5px;margin-bottom:6px}
+  .notes h3{break-after:avoid}
+  .legend{font-size:10.5px;margin:4px 0}
+
+  /* le Sankey tient dans la largeur de la page au lieu de défiler */
+  .scroller{overflow:visible !important}
+  #sankey{min-width:0 !important;width:100% !important;height:auto !important;max-height:146mm}
+  svg text{font-size:11.5px}
+  svg .lab-v{font-size:10.5px}
+
+  .aide,.fn .name,.fn .bar{break-inside:avoid}
+  .fn .name{cursor:default}
+  .car{display:none}  /* fleches de depliage : sans objet sur papier */
+  .aides{gap:8px}
+  .aide .v{font-size:17px}
+
+  /* notes : deux colonnes pour garder des lignes lisibles */
+  .notes{font-size:11px}
+  .notes ul{column-count:2;column-gap:26px;margin:6px 0 10px}
+  .notes li{break-inside:avoid;margin-bottom:5px}
+  .notes a{text-decoration:none}
+
+  #checks,#audit{min-width:0;font-size:10px}
+  #checks tr,#audit tr{break-inside:avoid}
+  footer{margin-top:12px;font-size:10px}
+}
 </style>
 </head>
 <body>
@@ -160,6 +234,8 @@ footer{font-size:12.5px;color:var(--muted);margin-top:24px}
   <nav class="tabs">
     <a href="index.html" aria-current="page">Visualisation</a>
     <a href="ajustement.html">Ajustement</a>
+    <a href="taxe-sous-occupation.html">Taxe sous-occupation</a>
+    <a href="epargne.html">Épargne dormante</a>
   </nav>
 
   <div id="tab-visu">
@@ -805,6 +881,12 @@ function render(){
 }
 render();
 let rt; addEventListener("resize",()=>{clearTimeout(rt); rt=setTimeout(render,150);});
+// impression : forcer la palette claire (les couleurs du Sankey sont figees au rendu)
+let printTheme=null;
+addEventListener("beforeprint",()=>{ printTheme=document.documentElement.getAttribute("data-theme");
+  document.documentElement.setAttribute("data-theme","light"); render(); });
+addEventListener("afterprint",()=>{ if(printTheme===null) document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme",printTheme); render(); });
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",render);
 })();
 </script>
